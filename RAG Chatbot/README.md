@@ -110,5 +110,53 @@ def init_llm():
     logger.debug("Embeddings initialized with model device: %s", DEVICE)
 ```
 
+#### Processing of documents:
+`process_document` function is responsible for processing the PDF documents. It uses the PyPDFLoader to load the document, splits the document into chunks using the `RecursiveCharacterTextSplitter`, and then creates a vector store (`Chroma`) from the document chunks using the language model embeddings. This vector store is then used to create a retriever interface, which is used to create a `ConversationalRetrievalChain`.
+1. Document loading: The PDF document is loaded using the `PyPDFLoader` class, which takes the path of the document as an argument. (Todo exercise: assign PyPDFLoader(…) to loader)
+2. Document splitting: The loaded document is split into chunks using the `RecursiveCharacterTextSplitter` class. The `chunk_size` and `overlap` can be specified. (Todo exercise: assign RecursiveCharacterTextSplitter(…) to `text_splitter`)
+3. Vector store creation: A vector store, which is a kind of index, is created from the document chunks using the language model embeddings. This is done using the `Chroma` class.
+4. Retrieval system setup: A retrieval system is set up using the vector store. This system, calls a `ConversationalRetrievalChain`, used to answer questions based on the document content.
+
+```Python
+# Function to process a PDF document
+def process_document(document_path):
+    global conversation_retrieval_chain
+
+    logger.info("Loading document from path: %s", document_path)
+    # Load the document
+    loader =  # ---> use PyPDFLoader and document_path from the function input parameter <---
+    documents = loader.load()
+    logger.debug("Loaded %d document(s)", len(documents))
+
+    # Split the document into chunks, set chunk_size=1024, and chunk_overlap=64. assign it to variable text_splitter
+    text_splitter = # ---> use Recursive Character TextSplitter and specify the input parameters <---
+    texts = text_splitter.split_documents(documents)
+    logger.debug("Document split into %d text chunks", len(texts))
+
+    # Create an embeddings database using Chroma from the split text chunks.
+    logger.info("Initializing Chroma vector store from documents...")
+    db = Chroma.from_documents(texts, embedding=embeddings)
+    logger.debug("Chroma vector store initialized.")
+
+    # Optional: Log available collections if accessible (this may be internal API)
+    try:
+        collections = db._client.list_collections()  # _client is internal; adjust if needed
+        logger.debug("Available collections in Chroma: %s", collections)
+    except Exception as e:
+        logger.warning("Could not retrieve collections from Chroma: %s", e)
+
+    # Build the QA chain, which utilizes the LLM and retriever for answering questions. 
+    conversation_retrieval_chain = RetrievalQA.from_chain_type(
+        llm=llm_hub,
+        chain_type="stuff",
+        retriever=db.as_retriever(search_type="mmr", search_kwargs={'k': 6, 'lambda_mult': 0.25}),
+        return_source_documents=False,
+        input_key="question"
+        # chain_type_kwargs={"prompt": prompt}  # if you are using a prompt template, uncomment this part
+    )
+    logger.info("RetrievalQA chain created successfully.")
+```
+
+
 
 

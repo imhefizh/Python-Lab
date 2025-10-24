@@ -65,12 +65,15 @@ def process_document(document_path):
 
     logger.info("Loading document from path: %s", document_path)
     # Load the document
-    loader =  # ---> use PyPDFLoader and document_path from the function input parameter <---
+    loader =  PyPDFLoader(document_path)
     documents = loader.load()
     logger.debug("Loaded %d document(s)", len(documents))
 
     # Split the document into chunks, set chunk_size=1024, and chunk_overlap=64. assign it to variable text_splitter
-    text_splitter = # ---> use Recursive Character TextSplitter and specify the input parameters <---
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=1024,
+        chunk_overlap=64
+    )
     texts = text_splitter.split_documents(documents)
     logger.debug("Document split into %d text chunks", len(texts))
 
