@@ -190,6 +190,37 @@ def process_prompt(prompt):
 #### Global variables:
 `llm` and `llm_embeddings` are used to store the language model and its embeddings `conversation_retrieval_chain` and `chat_history` is used to store the chat and history. `global` is used inside the functions `init_llm`, `process_document`, and `process_prompt` to indicate that the variables `llm`, `llm_embeddings`, `conversation_retrieval_chain`, and `chat_history` are global variables. This means that when these variables are modified inside these functions, the changes will persist outside the functions as well, affecting the global state of the program.
 
+## Using HuggingFace API for the worker
+Another option for watsonX is using HuggingFace API. However, the model type and performance are very limited for the free version. As of Sep 2023, Llama2 is not supported for free, and you will use the cnicu/t5-small-booksum model instead.Please note since this is a free model, the results may not be fully accurate.
+
+Install the specified versions of LangChain and HuggingFace Hub, copy and paste the following commands into your terminal:
+```
+pip install langchain==0.1.17
+pip install huggingface-hub==0.23.4
+```
+You need to update init_llm and insert your Hugging Face API key.
+
+The HuggingFaceHub object is created with the specified repo_id and additional parameters like temperature, max_new_tokens, and max_length to control the behavior of the model. Here you can find more examples.
+
+```Python
+# Function to initialize the language model and its embeddings
+def init_llm():
+    global llm_hub, embeddings
+    # Set up the environment variable for HuggingFace and initialize the desired model.
+    os.environ["HUGGINGFACEHUB_API_TOKEN"] = "YOUR API KEY"
+
+    # repo name for the model
+    model_id = "cnicu/t5-small-booksum"
+    # load the model into the HuggingFaceHub
+    llm_hub = HuggingFaceHub(repo_id=model_id, model_kwargs={"temperature": 0.1, "max_new_tokens": 600, "max_length": 600})
+
+    #Initialize embeddings using a pre-trained model to represent the text data.
+    embeddings = HuggingFaceInstructEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={"device": DEVICE}
+    )
+```
+
+
 
 
 
