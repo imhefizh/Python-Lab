@@ -57,12 +57,12 @@ audio_input = gr.Audio(sources="upload", type="filepath")
 output_text = gr.Textbox()
 
 iface = gr.Interface(
-    fn=transcript_audi0,
+    fn=transcript_audio,
     inputs=audio_input,
     outputs=output_text,
     title="Speech Analyzer",
     description="Made by Maulana Hafidz"
 )
 
-iface.launc(server_name="0.0.0.0", server_port=7860)
+iface.launch(server_name="0.0.0.0", server_port=7860)
 
