@@ -157,6 +157,40 @@ def process_document(document_path):
     logger.info("RetrievalQA chain created successfully.")
 ```
 
+#### Prompt processing (`process_prompt` function):
+This function handles a user's prompt or question, retrieves a response based on the contents of the previously processed PDF document, and maintains a chat history. It does the following:
+- Passes the prompt and the chat history to the `ConversationalRetrievalChain` object. `conversation_retrieval_chain` is the primary tool used to query the language model and get an answer based on the processed PDF document's contents.
+- Appends the prompt and the bot's response to the chat history.
+- Returns the bot's response.
+
+Here's a skeleton of the `process_prompt` function for the exercise:
+```Python
+# Function to process a user prompt
+def process_prompt(prompt):
+    global conversation_retrieval_chain
+    global chat_history
+
+    logger.info("Processing prompt: %s", prompt)
+    # Query the model using the new .invoke() method
+    output = conversation_retrieval_chain.invoke({"question": prompt, "chat_history": chat_history})
+    answer = output["result"]
+    logger.debug("Model response: %s", answer)
+
+    # Update the chat history
+    # TODO: Append the prompt and the bot's response to the chat history using chat_history.append and pass `prompt` `answer` as arguments
+    # --> write your code here <--	
+    
+    logger.debug("Chat history updated. Total exchanges: %d", len(chat_history))
+
+    # Return the model's response
+    return answer
+    
+```
+
+#### Global variables:
+`llm` and `llm_embeddings` are used to store the language model and its embeddings `conversation_retrieval_chain` and `chat_history` is used to store the chat and history. `global` is used inside the functions `init_llm`, `process_document`, and `process_prompt` to indicate that the variables `llm`, `llm_embeddings`, `conversation_retrieval_chain`, and `chat_history` are global variables. This means that when these variables are modified inside these functions, the changes will persist outside the functions as well, affecting the global state of the program.
+
+
 
 
 
