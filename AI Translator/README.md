@@ -296,4 +296,95 @@ The structure of the response is something like this:
     }
 }
 ```
-Therefore, we return response.content which contains the audio data received..
+Therefore, we return response.content which contains the audio data received.
+
+## Step 6: Putting everything together by creating Flask API endpoints
+The outline has already taken care of the imports for the functions from the worker.py file to the server.py file. This allows the server.py file to access these imported functions from the worker.py file.
+
+```Py
+from worker import speech_to_text, text_to_speech, watsonx_process_message
+```
+
+Now we will be updating two Flask routes, one for converting the user's Speech-to-Text (`speech_to_text_route`) and the other for processing their message and converting the Watsonx's response back to speech (`process_message_route`).
+
+### Speech-to-Text route
+This function is simple, as it converts the user's Speech-to-Text using the `speech_to_text` we defined in one of our previous sections and returns the response. Replace the `speech_to_text_route` function with the code below:
+```py
+@app.route('/speech-to-text', methods=['POST'])
+def speech_to_text_route():
+    print("processing Speech-to-Text")
+    audio_binary = request.data # Get the user's speech from their request
+    text = speech_to_text(audio_binary) # Call speech_to_text function to transcribe the speech
+
+    # Return the response to user in JSON format
+    response = app.response_class(
+        response=json.dumps({'text': text}),
+        status=200,
+        mimetype='application/json'
+    )
+    print(response)
+    print(response.data)
+    return response
+```
+
+### Function explanation
+We start by storing the `request.data` in a variable called `audio_binary`, as we are sending the binary data of audio in the body of the request from the frontend. Then we use our previously defined function `speech_to_text` and pass in the `audio_binary` as a parameter to it. We store the return value in a new variable called `text`.
+
+As our frontend expects a JSON response, we create a json response by using the Flask's `app.response_class` function and passing in three arguments:
+1. `response`: This is the actual data that we want to send in the body of our HTTP response. We will be using `json.dumps` function and will pass in a simple dictionary containing only one key-value pair - `'text': text`
+2. `status`: This is the status code of the HTTP response; we will set it to 200 which essentially means the response is OK and that the request has succeeded.
+3. `mimetype`: This is the format of our response which is more formally written as 'application/json' in HTTP request/response.
+
+We then return the `response`.
+
+### Process message route
+This function will basically accept a user's message in text form with their preferred voice. It will then use our previously defined helper functions to call the Watsonx's API to process this prompt and then finally convert that response to text using Watson's Text-to-Speech API and then return this data back to the user. Replace the process_message_route function to the code below:
+```py
+@app.route('/process-message', methods=['POST'])
+def process_message_route():
+    user_message = request.json['userMessage'] # Get user's message from their request
+    print('user_message', user_message)
+
+    voice = request.json['voice'] # Get user\'s preferred voice from their request
+    print('voice', voice)
+
+    # Call watsonx_process_message function to process the user's message and get a response back
+    watsonx_response_text = watsonx_process_message(user_message)
+
+    # Clean the response to remove any emptylines
+    watsonx_response_text = os.linesep.join([s for s in watsonx_response_text.splitlines() if s])
+
+    # Call our text_to_speech function to convert Watsonx Api's reponse to speech
+    watsonx_response_speech = text_to_speech(watsonx_response_text, voice)
+
+    # convert watsonx_response_speech to base64 string so it can be sent back in the JSON response
+    watsonx_response_speech = base64.b64encode(watsonx_response_speech).decode('utf-8')
+
+    # Send a JSON response back to the user containing their message\'s response both in text and speech formats
+    response = app.response_class(
+        response=json.dumps({"watsonxResponseText": watsonx_response_text, "watsonxResponseSpeech": watsonx_response_speech}),
+        status=200,
+        mimetype='application/json'
+    )
+
+    print(response)
+    return response
+```
+
+### Function explanation
+We will start by storing the user's message in `user_message` by using `request.json['userMessage']`. Similarly, we will also store the user's preferred voice in `voice` by using `request.json['voice']`.
+
+We will then use the helper function we defined earlier to process this user's message by calling `watsonx_process_message(user_message)` and storing the response in `watsonx_response_text`. We will then clean this response to remove any empty lines by using a simple _one-liner function_ in Python that is, `os.linesep.join([s for s in watsonx_response_text.splitlines() if s])`.
+
+Once we have this response cleaned, we will now use another helper function we defined earlier to convert it to speech. Therefore, we will call `text_to_speech` and pass in the two required parameters which are `watsonx_response_text` and `voice`. We will store the function's return value in a variable called `watsonx_response_speech`.
+
+As the `watsonx_response_speech` is a type of audio data, we can't directly send this inside a json as it can only store textual data. Therefore, we will be using something called "base64 encoding". We can convert any type of binary data to a textual representation by encoding the data in base64 format. Hence, we will simply use `base64.b64encode(watsonx_response_speech).decode('utf-8')` and store the result back to `watsonx_response_speech`.
+
+Now we have everything ready for our response so finally we will be using the same `app.response_class` function and send in the three parameters required. The status and mimetype will be exactly the same as we defined them in our previous `speech_to_text_route`. In the response we will use `json.dumps` function as we did before and will pass in a dictionary as a parameter containing `"watsonxResponseText":watsonx_response_text and "watsonxResponseSpeech":watsonx_response_speech`.
+
+We then return the `response`.
+
+## Step 7: Running the app in CloudIDE
+The assistant is now complete and ready to use.
+
+Assuming the Text-to-Speech and Speech-to-Text models URLs are correctly set, you just need to run the server.py file and start the application.
