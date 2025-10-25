@@ -16,7 +16,7 @@ model_id = "meta-llama/llama-3-2-11b-vision-instruct"  # Directly specifying the
 project_id = "skills-network"  # Specifying project_id as provided
 params = TextChatParameters(
     temperature=0.1,
-    max_tokens=256
+    max_tokens=512
 )
 
 # Initialize the model
