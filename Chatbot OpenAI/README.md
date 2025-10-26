@@ -148,3 +148,130 @@ html, body {
 }
 ```
 
+## Task 3: Create a JavaScript file to implement the functionality of the Chatbot
+- Create a `main.js` file in the public directory to implement the functionality.
+- In the `main.js` file, the JavaScript code is designed to handle user input and initiate an API call to the OpenAI API.
+- An event listener is attached to the submit button so that when the user clicks it, the code is executed.
+- In the event listener callback function, we retrieve the user's input from the text input element and display their message in the chat log
+- Next, we make an API request to the server with the user's message using the `fetch()` function, specifying the appropriate endpoint on the server to receive this request.
+- After receiving the response from the OpenAI API, we send it back to the client and display the chatbot's response in the text area of the `index.html` file.
+- We then append the response to the chat log on the front end, making the conversation visible on the UI (User Interface).
+
+Insert the following code into the newly created `main.js` file.
+
+```javascript title:"main.js"
+const chatLog = document.getElementById('chat-log');
+const userInput = document.getElementById('user-input');
+function sendMessage() {
+    const message = userInput.value;
+    // Display user's message
+    displayMessage('user', message);
+    // Call OpenAI API to get chatbot's response
+    getChatbotResponse(message);
+    // Clear user input
+    userInput.value = '';
+}
+function displayMessage(sender, message) {
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message', sender);
+    // Wrap the message in a <p> tag
+    const messageParagraph = document.createElement('p');
+    messageParagraph.innerText = message;
+    // Append the <p> tag to the message element
+    messageElement.appendChild(messageParagraph);
+    chatLog.appendChild(messageElement);
+}
+function getChatbotResponse(userMessage) {
+    // Make a request to your server with the user's message
+    fetch('/getChatbotResponse', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userMessage }),
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Display chatbot's response
+        displayMessage('chatbot', data.chatbotResponse);
+    })
+    .catch(error => console.error('Error:', error));
+}
+```
+
+## Task 4: Create an Express Server and integrate OpenAI API
+- Create a new file named `server.js` within your project directory (software-dev-chatbot)
+- This file will be responsible for managing API requests and integrating with OpenAI.
+- This code sets up a basic Express.js server that serves static files from a `public` directory.
+- It includes a route for the root path ('/') to serve an HTML file.
+- Additionally, there is a POST endpoint `/getChatbotResponse` that receives a user message, utilizes an OpenAI API wrapper (`OpenAIAPI`), generates a chatbot response using the OpenAI API, and sends the response back to the client.
+- The server listens on a specified port 3000, and a message is logged to the console when the server is successfully running.
+
+```Javascript title:"server.js"
+process.env["NODE_TLS_REJECT_UNAUTHORIZED"]=0;
+const express = require('express');
+const path = require('path');
+const { OpenAIAPI } = require('./openai');
+
+const app = express();
+const port = process.env.PORT || 3000;
+
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.post('/getChatbotResponse', async (req, res) => {
+    const userMessage = req.body.userMessage;
+
+    // Use OpenAI API to generate a response
+    const chatbotResponse = await OpenAIAPI.generateResponse(userMessage);
+
+    // Send the response back to the client
+    res.json({ chatbotResponse });
+});
+app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+});
+```
+
+## Task 5: Create OpenAI API Module
+Create an `openai.js` file within the project directory to encapsulate the OpenAI API logic.
+
+This code facilitates communication with the OpenAI API, specifically the gpt-3.5-turbo Codex engine, allowing developers to generate responses based on user input through a secure configuration using an API key.
+```Javascript
+class OpenAIAPI {
+    static async generateResponse(userMessage, conversationHistory = []) {
+        const apiKey = process.env.OPENAI_API_KEY;
+        const endpoint = 'https://api.openai.com/v1/chat/completions';
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+                model: "gpt-3.5-turbo-1106",
+                messages: conversationHistory.concat([{ role: 'user', content: userMessage }]),
+                max_tokens: 150
+            }),
+        });
+        const responseData = await response.json();
+        // Log the entire API response for debugging
+        console.log('Response from OpenAI API:', responseData.choices[0].message);
+        // Check if choices array is defined and not empty
+        if (responseData.choices && responseData.choices.length > 0 && responseData.choices[0].message) {
+            return responseData.choices[0].message.content;
+        } else {
+            // Handle the case where choices array is undefined or empty
+            console.error('Error: No valid response from OpenAI API');
+            return 'Sorry, I couldn\'t understand that.';
+        }
+    }
+}
+module.exports = { OpenAIAPI };
+```
+
+
