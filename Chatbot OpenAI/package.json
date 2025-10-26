@@ -1,0 +1,16 @@
+{
+  "name": "chatbot-openai",
+  "version": "1.0.0",
+  "description": "- Node and Express are two technologies that are commonly used to create web applications. - Node is a runtime environment that allows you to run JavaScript code on the server side, without a browser. - Express is a framework that provides a set of features and tools to simplify the development of web applications with Node.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0",
+    "openai": "^6.7.0"
+  }
+}
